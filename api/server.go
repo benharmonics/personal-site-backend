@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	cfg "github.com/benharmonics/backend/config"
-	db "github.com/benharmonics/backend/database"
+	cfg "github.com/benharmonics/personal-site-backend/config"
+	db "github.com/benharmonics/personal-site-backend/database"
 )
 
 type Server struct {

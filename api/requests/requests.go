@@ -1,7 +1,7 @@
 package requests
 
 import (
-	"github.com/benharmonics/backend/utils/validation"
+	"github.com/benharmonics/personal-site-backend/utils/validation"
 	"github.com/go-playground/validator/v10"
 )
 

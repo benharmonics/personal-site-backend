@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/benharmonics/backend/api/requests"
+	"github.com/benharmonics/personal-site-backend/api/requests"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

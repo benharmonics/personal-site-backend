@@ -6,10 +6,10 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/benharmonics/backend/api"
-	"github.com/benharmonics/backend/config"
-	"github.com/benharmonics/backend/logging"
-	"github.com/benharmonics/backend/utils"
+	"github.com/benharmonics/personal-site-backend/api"
+	"github.com/benharmonics/personal-site-backend/config"
+	"github.com/benharmonics/personal-site-backend/logging"
+	"github.com/benharmonics/personal-site-backend/utils"
 )
 
 func init() {

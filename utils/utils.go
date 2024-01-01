@@ -3,7 +3,7 @@ package utils
 import (
 	"os"
 
-	"github.com/benharmonics/backend/logging"
+	"github.com/benharmonics/personal-site-backend/logging"
 )
 
 func Must(err error) {

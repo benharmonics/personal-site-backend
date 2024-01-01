@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/benharmonics/backend/logging"
+	"github.com/benharmonics/personal-site-backend/logging"
 	"github.com/gorilla/websocket"
 )
 

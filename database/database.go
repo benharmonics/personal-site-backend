@@ -8,8 +8,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/benharmonics/backend/logging"
-	"github.com/benharmonics/backend/utils"
+	"github.com/benharmonics/personal-site-backend/logging"
+	"github.com/benharmonics/personal-site-backend/utils"
 )
 
 // Database represents our connection to MongoDB

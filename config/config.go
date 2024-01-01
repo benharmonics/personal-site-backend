@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/benharmonics/backend/logging"
+	"github.com/benharmonics/personal-site-backend/logging"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/benharmonics/backend/database/models"
+	"github.com/benharmonics/personal-site-backend/database/models"
 	"golang.org/x/crypto/bcrypt"
 )
 

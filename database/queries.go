@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/benharmonics/backend/database/models"
+	"github.com/benharmonics/personal-site-backend/database/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"

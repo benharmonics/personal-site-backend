@@ -1,4 +1,4 @@
-module github.com/benharmonics/backend
+module github.com/benharmonics/personal-site-backend
 
 go 1.20
 

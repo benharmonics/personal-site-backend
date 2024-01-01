@@ -3,8 +3,8 @@ package chatroom
 import (
 	"net/http"
 
-	"github.com/benharmonics/backend/logging"
-	"github.com/benharmonics/backend/utils/web"
+	"github.com/benharmonics/personal-site-backend/logging"
+	"github.com/benharmonics/personal-site-backend/utils/web"
 )
 
 func ServeChatroom(name string, w http.ResponseWriter, r *http.Request) {

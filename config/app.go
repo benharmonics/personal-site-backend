@@ -1,6 +1,6 @@
 package config
 
-import "github.com/benharmonics/backend/utils/validation"
+import "github.com/benharmonics/personal-site-backend/utils/validation"
 
 type AppConfig struct {
 	Host string `validate:"required"`

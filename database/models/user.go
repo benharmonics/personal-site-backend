@@ -3,8 +3,8 @@ package models
 import (
 	"time"
 
-	"github.com/benharmonics/backend/utils/auth"
-	"github.com/benharmonics/backend/utils/validation"
+	"github.com/benharmonics/personal-site-backend/utils/auth"
+	"github.com/benharmonics/personal-site-backend/utils/validation"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/benharmonics/backend/logging"
+	"github.com/benharmonics/personal-site-backend/logging"
 )
 
 func cors(h http.Handler, allowMethods ...string) http.HandlerFunc {

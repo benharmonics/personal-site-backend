@@ -12,13 +12,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/benharmonics/backend/api/requests"
-	"github.com/benharmonics/backend/chatroom"
-	"github.com/benharmonics/backend/database"
-	"github.com/benharmonics/backend/database/models"
-	"github.com/benharmonics/backend/logging"
-	"github.com/benharmonics/backend/utils/auth"
-	"github.com/benharmonics/backend/utils/web"
+	"github.com/benharmonics/personal-site-backend/api/requests"
+	"github.com/benharmonics/personal-site-backend/chatroom"
+	"github.com/benharmonics/personal-site-backend/database"
+	"github.com/benharmonics/personal-site-backend/database/models"
+	"github.com/benharmonics/personal-site-backend/logging"
+	"github.com/benharmonics/personal-site-backend/utils/auth"
+	"github.com/benharmonics/personal-site-backend/utils/web"
 )
 
 func (s *Server) routes() {
