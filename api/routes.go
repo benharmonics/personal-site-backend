@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -22,14 +21,17 @@ import (
 )
 
 func (s *Server) routes() {
+	// We have to set the chatroom database at some point or chat messages will never get saved
+	chatroom.SetDatabase(s.db)
+
 	s.HandleFunc("/heartbeat", heartbeat)
 
-	s.HandleFunc("/users/new", cors(createUser(&s.db), http.MethodPost))
-	s.HandleFunc("/login", cors(login(&s.db), http.MethodPost))
+	s.HandleFunc("/users/new", cors(createUser(s.db), http.MethodPost))
+	s.HandleFunc("/login", cors(login(s.db), http.MethodPost))
 
-	s.HandleFunc("/blogs", cors(getBlogPosts(&s.db), http.MethodGet))
-	s.HandleFunc("/blogs/id/", cors(getBlogPostByID(&s.db), http.MethodGet))
-	s.HandleFunc("/blogs/new", cors(newBlogPost(&s.db), http.MethodPost))
+	s.HandleFunc("/blogs", cors(getBlogPosts(s.db), http.MethodGet))
+	s.HandleFunc("/blogs/id/", cors(getBlogPostByID(s.db), http.MethodGet))
+	s.HandleFunc("/blogs/new", cors(newBlogPost(s.db), http.MethodPost))
 
 	s.HandleFunc("/ws/chat/", serveChatroom)
 
@@ -60,7 +62,7 @@ func createUser(db *database.Database) http.HandlerFunc {
 		}
 		user, err := models.NewUser(req.Email, req.Password)
 		if err != nil {
-			logging.Error(err)
+			logging.Error("Failed to create a new user:", err)
 			logAndEmitHTTPError(w, r, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -155,7 +157,7 @@ func newBlogPost(db *database.Database) http.HandlerFunc {
 			logAndEmitHTTPError(w, r, http.StatusFailedDependency)
 			return
 		}
-		logging.Info(fmt.Sprintf("New Blog: %+v", post))
+		logging.Infof("New Blog: %+v", post)
 		logging.HTTPOk(r)
 	}
 }

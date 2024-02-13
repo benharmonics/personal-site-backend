@@ -13,20 +13,22 @@ import (
 )
 
 func init() {
-	logging.SetColor(true)
-	logging.SetDebug(true)
 	if err := godotenv.Load(); err != nil {
-		logging.Warning("Failed to load dotenv file:", err)
+		logging.Warn("Failed to load dotenv file:", err)
 	}
 	utils.Must(config.ValidateConfig())
 }
 
 func main() {
+	logging.SetLogLevel(logging.LogLevelDebug)
+	logging.SetColor(true)
+	logging.SetTime(true)
+	logging.Info("Starting")
+
 	srv := api.NewServer()
 	defer srv.DisconnectFromDatabase()
 	appConf := config.NewAppConfig()
 	addr := fmt.Sprintf("%s:%d", appConf.Host, appConf.Port)
 	logging.Info("Listening on", addr)
 	utils.Must(http.ListenAndServe(addr, srv))
-	http.ListenAndServe(addr, srv)
 }

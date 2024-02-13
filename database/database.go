@@ -7,9 +7,9 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 
 	"github.com/benharmonics/personal-site-backend/logging"
-	"github.com/benharmonics/personal-site-backend/utils"
 )
 
 // Database represents our connection to MongoDB
@@ -23,15 +23,15 @@ type Database struct {
 }
 
 // NewDatabase creates a new MongoDB connection.
-//
-// PANICS
-func NewDatabase(opts ...Option) Database {
-	db := Database{host: "localhost", port: 27017}
+func NewDatabase(opts ...Option) (*Database, error) {
+	db := &Database{host: "localhost", port: 27017}
 	for _, f := range opts {
-		f(&db)
+		f(db)
 	}
-	utils.Must(db.setMongoDBClient())
-	return db
+	if err := db.setMongoDBClient(); err != nil {
+		return nil, err
+	}
+	return db, nil
 }
 
 // Disconnect attempts to disconnect from MongoDB.
@@ -65,11 +65,12 @@ func (db *Database) setMongoDBClient() error {
 	if !db.encrypted { // Port is not allowed with +srv connections
 		uri += fmt.Sprintf(":%d", db.port)
 	}
-	uri += "/?retryWrites=true&w=majority"
 	logging.Debug("MongoDB URI:", uri)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	wc := &writeconcern.WriteConcern{W: writeconcern.Majority()}
+	opts := options.Client().ApplyURI(uri).SetRetryWrites(true).SetWriteConcern(wc)
+	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
 		return err
 	}

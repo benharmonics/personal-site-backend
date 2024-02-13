@@ -15,7 +15,6 @@ func ServeChatroom(name string, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	room := newChatroom(name)
-	go room.run()
 
 	client := newClient(room, conn)
 	client.room.register <- client

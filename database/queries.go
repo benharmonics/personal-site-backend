@@ -15,8 +15,9 @@ import (
 const (
 	database = "personal-server"
 
-	blogsCollection = "blogs"
-	usersCollection = "users"
+	blogsCollection    = "blogs"
+	usersCollection    = "users"
+	chatroomCollection = "chatroom"
 )
 
 func (db *Database) InsertBlog(blog models.BlogPost) error {
@@ -80,4 +81,30 @@ func (db *Database) FindUser(email string) (*models.User, error) {
 		return nil, err
 	}
 	return user, nil
+}
+
+func (db *Database) InsertChatroomMessage(msg *models.ChatroomMessage) error {
+	if msg == nil {
+		return fmt.Errorf("cannot insert nil chatroom message")
+	}
+	coll := db.client.Database(database).Collection(chatroomCollection)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	_, err := coll.InsertOne(ctx, msg)
+	return err
+}
+
+func (db *Database) FindChatroomMessages(name string) ([]models.ChatroomMessage, error) {
+	var msgs []models.ChatroomMessage
+	coll := db.client.Database(database).Collection(usersCollection)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	cur, err := coll.Find(ctx, bson.M{"roomName": name})
+	if err != nil {
+		return nil, err
+	}
+	if err := cur.All(ctx, &msgs); err != nil {
+		return nil, err
+	}
+	return msgs, nil
 }

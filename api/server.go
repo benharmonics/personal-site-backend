@@ -6,22 +6,24 @@ import (
 
 	cfg "github.com/benharmonics/personal-site-backend/config"
 	db "github.com/benharmonics/personal-site-backend/database"
+	"github.com/benharmonics/personal-site-backend/utils"
 )
 
 type Server struct {
 	*http.ServeMux
-	db        db.Database
+	db        *db.Database
 	startTime time.Time
 }
 
 func NewServer() Server {
 	dbConf := cfg.NewMongoConfig()
-	database := db.NewDatabase(
+	database, err := db.NewDatabase(
 		db.WithEncryptedConnection(),
 		db.WithHost(dbConf.Host),
 		db.WithCredentials(dbConf.Username, dbConf.Password),
 		db.WithoutPort(),
 	)
+	utils.Must(err)
 	srv := Server{
 		ServeMux:  http.NewServeMux(),
 		db:        database,

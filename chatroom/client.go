@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/benharmonics/personal-site-backend/logging"
 	"github.com/gorilla/websocket"
+
+	"github.com/benharmonics/personal-site-backend/logging"
 )
 
 const (
@@ -33,6 +34,7 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:   4096,
 	WriteBufferSize:  4096,
 	CheckOrigin: func(r *http.Request) bool {
+		// TODO: actually check the origin
 		logging.Debug("Websocket origin:", r.RemoteAddr)
 		return true
 	},
@@ -69,12 +71,13 @@ func (c *client) readPump() {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				logging.Warning(err)
+				logging.Warn(err)
 			}
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		c.room.broadcast <- message
+		datedMessage := append(append(message, byte(' ')), []byte(time.Now().Format(time.RFC3339))...)
+		c.room.broadcast <- datedMessage
 	}
 }
 
