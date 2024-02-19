@@ -1,26 +1,81 @@
 package database
 
-type Option func(*Database)
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/benharmonics/personal-site-backend/logging"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+)
+
+type (
+	Option func(*ConnectOption)
+
+	ConnectOption struct {
+		host      string
+		port      int
+		username  *string
+		password  *string
+		encrypted bool
+	}
+)
 
 func WithEncryptedConnection() Option {
-	return func(db *Database) { db.encrypted = true }
+	return func(db *ConnectOption) { db.encrypted = true }
 }
 
 func WithHost(host string) Option {
-	return func(db *Database) { db.host = host }
+	return func(db *ConnectOption) { db.host = host }
 }
 
 func WithPort(port int) Option {
-	return func(db *Database) { db.port = port }
+	return func(db *ConnectOption) { db.port = port }
 }
 
 func WithoutPort() Option {
-	return func(db *Database) { db.port = 0 }
+	return func(db *ConnectOption) { db.port = 0 }
 }
 
 func WithCredentials(username, password string) Option {
-	return func(db *Database) {
+	return func(db *ConnectOption) {
 		db.username = &username
 		db.password = &password
 	}
+}
+
+func (db *Database) connect(opt ConnectOption) error {
+	// proto
+	uri := "mongodb"
+	if opt.encrypted {
+		uri += "+srv"
+	}
+	uri += "://"
+	logging.Info("Connecting to MongoDB at", uri+opt.host)
+	// credentials
+	if opt.username != nil {
+		uri += *opt.username
+		if opt.password != nil {
+			uri += fmt.Sprintf(":%s", *opt.password)
+		}
+		uri += "@"
+	}
+	// host & port
+	uri += opt.host
+	if !opt.encrypted { // Port is not allowed with +srv connections
+		uri += fmt.Sprintf(":%d", opt.port)
+	}
+	logging.Debug("MongoDB URI:", uri)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	wc := &writeconcern.WriteConcern{W: writeconcern.Majority()}
+	mongoOpts := options.Client().ApplyURI(uri).SetRetryWrites(true).SetWriteConcern(wc)
+	client, err := mongo.Connect(ctx, mongoOpts)
+	if err != nil {
+		return err
+	}
+	db.client = client
+	return nil
 }

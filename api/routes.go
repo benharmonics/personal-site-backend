@@ -3,7 +3,9 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"net/http"
+	"os"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -21,9 +23,6 @@ import (
 )
 
 func (s *Server) routes() {
-	// We have to set the chatroom database at some point or chat messages will never get saved
-	chatroom.SetDatabase(s.db)
-
 	s.HandleFunc("/heartbeat", heartbeat)
 
 	s.HandleFunc("/users/new", cors(createUser(s.db), http.MethodPost))
@@ -33,42 +32,82 @@ func (s *Server) routes() {
 	s.HandleFunc("/blogs/id/", cors(getBlogPostByID(s.db), http.MethodGet))
 	s.HandleFunc("/blogs/new", cors(newBlogPost(s.db), http.MethodPost))
 
-	s.HandleFunc("/ws/chat/", serveChatroom)
+	s.HandleFunc("/ws/chat/", serveChatroom())
 
-	s.HandleFunc("/images/", serveImages())
+	s.HandleFunc("/images", cors(getImages(), http.MethodGet))
+	s.HandleFunc("/images/", cors(serveImages(), http.MethodGet))
 
 	s.HandleFunc("/", cors(http.NotFoundHandler()))
 }
 
 func heartbeat(_ http.ResponseWriter, _ *http.Request) {}
 
-func serveChatroom(w http.ResponseWriter, r *http.Request) {
-	roomName := strings.Split(r.RequestURI, "/chat/")[1]
-	logging.Debug("Serving chatroom", roomName)
-	chatroom.ServeChatroom(roomName, w, r)
+func serveChatroom() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		roomName := strings.Split(r.RequestURI, "/chat/")[1]
+		logging.Debug("Serving chatroom", roomName)
+		chatroom.ServeChatroom(roomName, w, r)
+	}
+}
+
+func getImages() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		res, err := fs.ReadDir(os.DirFS("."), "static/images")
+		if err != nil {
+			logAndEmitHTTPError(w, r, http.StatusBadRequest, "Failed to read dir:", err)
+			return
+		}
+		type output struct {
+			Data []string `json:"data"`
+		}
+		ret := &output{}
+		for _, entry := range res {
+			ret.Data = append(ret.Data, entry.Name())
+			info, err := entry.Info()
+			if err != nil {
+				logging.Warnf("Failed to get file info for %s: %s\n", entry.Name(), err)
+				continue
+			}
+			logging.Debugf("Info for file %s: %+v\n", entry.Name(), info)
+		}
+		if err := web.EncodeHTTPResponse(w, r, ret); err != nil {
+			logging.Error("Failed to encode JSON:", err)
+			logAndEmitHTTPError(w, r, http.StatusInternalServerError)
+			return
+		}
+		logging.HTTPOk(r)
+	}
 }
 
 func serveImages() http.HandlerFunc {
-	serveImagesHandler := http.StripPrefix("/images/", http.FileServer(http.Dir("static/images")))
-	return cors(serveImagesHandler, http.MethodGet)
+	return func(w http.ResponseWriter, r *http.Request) {
+		handler := http.StripPrefix("/images/", http.FileServer(http.Dir("static/images")))
+		rec := web.NewStatusRecorder(w)
+		handler.ServeHTTP(rec, r)
+		if rec.Status != http.StatusOK {
+			logging.HTTPError(r, rec.Status)
+			return
+		}
+		logging.HTTPOk(r)
+	}
 }
 
 func createUser(db *database.Database) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req := &requests.NewUser{}
 		if err := web.DecodeHTTPRequest(r, req); err != nil {
-			logAndEmitHTTPError(w, r, http.StatusBadRequest, err.Error())
+			logAndEmitHTTPError(w, r, http.StatusBadRequest, err)
 			return
 		}
 		user, err := models.NewUser(req.Email, req.Password)
 		if err != nil {
 			logging.Error("Failed to create a new user:", err)
-			logAndEmitHTTPError(w, r, http.StatusInternalServerError, err.Error())
+			logAndEmitHTTPError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		if err := db.InsertUser(user); err != nil {
 			logging.Error("Failed to insert new user into database:", err)
-			logAndEmitHTTPError(w, r, http.StatusInternalServerError, err.Error())
+			logAndEmitHTTPError(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		logging.Info("Created new user with ID", user.ID)
@@ -81,7 +120,7 @@ func login(db *database.Database) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req := &requests.Login{}
 		if err := web.DecodeHTTPRequest(r, req); err != nil {
-			logAndEmitHTTPError(w, r, http.StatusBadRequest, err.Error())
+			logAndEmitHTTPError(w, r, http.StatusBadRequest, err)
 			return
 		}
 		user, err := db.FindUser(req.Email)
@@ -148,7 +187,7 @@ func newBlogPost(db *database.Database) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req := requests.NewBlogPost{}
 		if err := web.DecodeHTTPRequest(r, &req); err != nil {
-			logAndEmitHTTPError(w, r, http.StatusBadRequest, err.Error())
+			logAndEmitHTTPError(w, r, http.StatusBadRequest, err)
 			return
 		}
 		post := models.NewBlogPost(models.FromRequest(req))
@@ -157,7 +196,7 @@ func newBlogPost(db *database.Database) http.HandlerFunc {
 			logAndEmitHTTPError(w, r, http.StatusFailedDependency)
 			return
 		}
-		logging.Infof("New Blog: %+v", post)
+		logging.Infof("New Blog: %+v\n", post)
 		logging.HTTPOk(r)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/benharmonics/personal-site-backend/chatroom"
 	cfg "github.com/benharmonics/personal-site-backend/config"
 	db "github.com/benharmonics/personal-site-backend/database"
 	"github.com/benharmonics/personal-site-backend/utils"
@@ -24,6 +25,8 @@ func NewServer() Server {
 		db.WithoutPort(),
 	)
 	utils.Must(err)
+	// We have to set the chatroom database at some point or chat messages will never get saved
+	chatroom.SetDatabase(database)
 	srv := Server{
 		ServeMux:  http.NewServeMux(),
 		db:        database,

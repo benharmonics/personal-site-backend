@@ -4,24 +4,32 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 )
 
 type Validator interface {
 	Validate() error
 }
 
-func DecodeHTTPRequest(r *http.Request, decodeTo Validator) error {
-	if err := json.NewDecoder(r.Body).Decode(decodeTo); err != nil {
+func DecodeHTTPRequest(r *http.Request, target Validator) error {
+	if err := json.NewDecoder(r.Body).Decode(target); err != nil {
 		return err
 	}
-	return decodeTo.Validate()
+	return target.Validate()
 }
 
-func HTTPError(w http.ResponseWriter, statusCode int, messages ...string) {
+func EncodeHTTPResponse(w http.ResponseWriter, r *http.Request, target interface{}) error {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return enc.Encode(target)
+}
+
+func HTTPError(w http.ResponseWriter, statusCode int, messages ...any) {
 	var errText string
 	if messages != nil {
-		errText = strings.Join(messages, " ")
+		for _, message := range messages {
+			errText += fmt.Sprintf("%s, ", message)
+		}
+		errText = errText[:len(errText)-2]
 	} else {
 		errText = fmt.Sprintf("%d %s", statusCode, http.StatusText(statusCode))
 	}
