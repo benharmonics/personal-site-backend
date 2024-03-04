@@ -52,23 +52,6 @@ func (room *chatroom) updateNewClient(c *client) {
 	}
 }
 
-// func (room *chatroom) saveToDB() error {
-// 	if database == nil {
-// 		return fmt.Errorf("database unavailable: no database set")
-// 	}
-// 	msgs, err := room.history.toDBModels(room.name)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if err = database.InsertChatroomMessages(msgs); err != nil {
-// 		return err
-// 	}
-// 	room.history.mu.Lock()
-// 	defer room.history.mu.Unlock()
-// 	room.history.messages = [][]byte{} // Empty cached messages
-// 	return nil
-// }
-
 func (room *chatroom) run() {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()

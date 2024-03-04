@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/benharmonics/personal-site-backend/logging"
+
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"

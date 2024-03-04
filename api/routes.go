@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"os"
@@ -24,6 +25,7 @@ import (
 
 func (s *Server) routes() {
 	s.HandleFunc("/heartbeat", heartbeat)
+	s.HandleFunc("/health", s.health())
 
 	s.HandleFunc("/users/new", cors(createUser(s.db), http.MethodPost))
 	s.HandleFunc("/login", cors(login(s.db), http.MethodPost))
@@ -40,7 +42,27 @@ func (s *Server) routes() {
 	s.HandleFunc("/", cors(http.NotFoundHandler()))
 }
 
+// heartbeat silently emits a 200 Ok.
 func heartbeat(_ http.ResponseWriter, _ *http.Request) {}
+
+func (s *Server) health() http.HandlerFunc {
+	type healthData struct {
+		Uptime string `json:"uptime"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		uptime := s.Uptime()
+		hrs := int(uptime.Hours())
+		mins := int(uptime.Minutes()) % 60
+		secs := int(uptime.Seconds()) % 60
+		res := healthData{
+			Uptime: fmt.Sprintf("%dh%dm%ds", hrs, mins, secs),
+		}
+		enc := json.NewEncoder(w)
+		enc.SetIndent("", "    ")
+		_ = enc.Encode(&res)
+		logging.HTTPOk(r)
+	}
+}
 
 func serveChatroom() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -105,7 +127,7 @@ func createUser(db *database.Database) http.HandlerFunc {
 			logAndEmitHTTPError(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		if err := db.InsertUser(user); err != nil {
+		if err := db.InsertOneUser(user); err != nil {
 			logging.Error("Failed to insert new user into database:", err)
 			logAndEmitHTTPError(w, r, http.StatusInternalServerError, err)
 			return
@@ -173,7 +195,7 @@ func getBlogPostByID(db *database.Database) http.HandlerFunc {
 			logAndEmitHTTPError(w, r, http.StatusBadRequest)
 			return
 		}
-		post, err := db.FindBlog(bson.M{"_id": id}, nil)
+		post, err := db.FindOneBlog(bson.M{"_id": id}, nil)
 		if err != nil {
 			logAndEmitHTTPError(w, r, http.StatusNotFound, "Post not found")
 			return
@@ -191,7 +213,7 @@ func newBlogPost(db *database.Database) http.HandlerFunc {
 			return
 		}
 		post := models.NewBlogPost(models.FromRequest(req))
-		if err := db.InsertBlog(post); err != nil {
+		if err := db.InsertOneBlog(post); err != nil {
 			logging.Error("Failed to insert blog to database:", err)
 			logAndEmitHTTPError(w, r, http.StatusFailedDependency)
 			return
