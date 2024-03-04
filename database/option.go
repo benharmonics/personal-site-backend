@@ -47,13 +47,26 @@ func WithCredentials(username, password string) Option {
 }
 
 func (db *Database) connect(opt ConnectOption) error {
+	logging.Info("Connecting to MongoDB at", opt.host)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	wc := &writeconcern.WriteConcern{W: "majority"}
+	mongoOpts := options.Client().ApplyURI(mongodbURI(opt)).SetRetryWrites(true).SetWriteConcern(wc)
+	client, err := mongo.Connect(ctx, mongoOpts)
+	if err != nil {
+		return err
+	}
+	db.client = client
+	return nil
+}
+
+func mongodbURI(opt ConnectOption) string {
 	// proto
 	uri := "mongodb"
 	if opt.encrypted {
 		uri += "+srv"
 	}
 	uri += "://"
-	logging.Info("Connecting to MongoDB at", uri+opt.host)
 	// credentials
 	if opt.username != nil {
 		uri += *opt.username
@@ -68,14 +81,5 @@ func (db *Database) connect(opt ConnectOption) error {
 		uri += fmt.Sprintf(":%d", opt.port)
 	}
 	logging.Debug("MongoDB URI:", uri)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-	wc := &writeconcern.WriteConcern{W: writeconcern.Majority()}
-	mongoOpts := options.Client().ApplyURI(uri).SetRetryWrites(true).SetWriteConcern(wc)
-	client, err := mongo.Connect(ctx, mongoOpts)
-	if err != nil {
-		return err
-	}
-	db.client = client
-	return nil
+	return uri
 }

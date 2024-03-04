@@ -2,19 +2,12 @@ package chatroom
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
-	"github.com/benharmonics/personal-site-backend/database"
-	"github.com/benharmonics/personal-site-backend/database/models"
 	"github.com/benharmonics/personal-site-backend/logging"
 )
 
-var appDatabase *database.Database
-
 var existingChatrooms = make(map[string]*chatroom)
-
-func SetDatabase(db *database.Database) { appDatabase = db }
 
 type chatroom struct {
 	name       string
@@ -23,11 +16,6 @@ type chatroom struct {
 	unregister chan *client
 	broadcast  chan []byte
 	history    messageHistory
-}
-
-type messageHistory struct {
-	mu       sync.Mutex
-	messages [][]byte
 }
 
 func newChatroom(name string) *chatroom {
@@ -47,44 +35,39 @@ func newChatroom(name string) *chatroom {
 	return room
 }
 
-func (hist *messageHistory) push(message []byte) {
-	hist.mu.Lock()
-	defer hist.mu.Unlock()
-	hist.messages = append(hist.messages, message)
-}
-
 func (room *chatroom) updateNewClient(c *client) {
 	room.history.mu.Lock()
 	defer room.history.mu.Unlock()
-	msgs, err := appDatabase.FindChatroomMessages(room.name)
+	msgs, err := database.FindChatroomMessages(room.name)
 	if err != nil {
 		logging.Error("Failed to get chatroom", room.name, "message history:", err)
+		return
 	}
 	// TODO: parse messages from database
 	logging.Debug("Found", len(msgs), "messages for chatroom", room.name)
-	for _, message := range room.history.messages {
-		c.send <- message
+	for _, msg := range msgs {
+		data := fmt.Sprintf("%s: %s %s", msg.Author, msg.Message, msg.Timestamp.Format(time.RFC3339))
+		logging.Debug("Sending message", data)
+		c.send <- []byte(data)
 	}
 }
 
-func (room *chatroom) saveToDB() error {
-	if appDatabase == nil {
-		return fmt.Errorf("database unavailable: no database set")
-	}
-	room.history.mu.Lock()
-	defer room.history.mu.Unlock()
-	for _, msg := range room.history.messages {
-		data, err := models.NewChatroomMessage(msg, room.name)
-		if err != nil {
-			return err
-		}
-		if err := appDatabase.InsertChatroomMessage(data); err != nil {
-			return err
-		}
-	}
-	room.history.messages = [][]byte{} // Empty cached messages
-	return nil
-}
+// func (room *chatroom) saveToDB() error {
+// 	if database == nil {
+// 		return fmt.Errorf("database unavailable: no database set")
+// 	}
+// 	msgs, err := room.history.toDBModels(room.name)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	if err = database.InsertChatroomMessages(msgs); err != nil {
+// 		return err
+// 	}
+// 	room.history.mu.Lock()
+// 	defer room.history.mu.Unlock()
+// 	room.history.messages = [][]byte{} // Empty cached messages
+// 	return nil
+// }
 
 func (room *chatroom) run() {
 	ticker := time.NewTicker(time.Minute)
@@ -106,7 +89,7 @@ func (room *chatroom) run() {
 			}
 		case <-ticker.C:
 			logging.Debug("Saving messages from chatroom", room.name, "to database")
-			if err := room.saveToDB(); err != nil {
+			if err := room.history.saveToDB(room.name); err != nil {
 				logging.Error("Chatroom", room.name, "failed to save to database:", err)
 			}
 		}

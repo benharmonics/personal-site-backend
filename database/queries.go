@@ -28,6 +28,20 @@ func (db *Database) InsertBlog(blog models.BlogPost) error {
 	return err
 }
 
+func (db *Database) InsertChatroomMessages(msgs []models.ChatroomMessage, opts ...*options.InsertManyOptions) error {
+	coll := db.client.Database(database).Collection(chatroomCollection)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	// We have to conver []string to []interface{}
+	// https://stackoverflow.com/questions/27689058/convert-string-to-interface
+	docs := make([]interface{}, len(msgs))
+	for i, msg := range msgs {
+		docs[i] = msg
+	}
+	_, err := coll.InsertMany(ctx, docs, opts...)
+	return err
+}
+
 func (db *Database) FindBlog(filter any, opts *options.FindOneOptions) (*models.BlogPost, error) {
 	post := &models.BlogPost{}
 	coll := db.client.Database(database).Collection(blogsCollection)
@@ -96,7 +110,7 @@ func (db *Database) InsertChatroomMessage(msg *models.ChatroomMessage) error {
 
 func (db *Database) FindChatroomMessages(name string) ([]models.ChatroomMessage, error) {
 	var msgs []models.ChatroomMessage
-	coll := db.client.Database(database).Collection(usersCollection)
+	coll := db.client.Database(database).Collection(chatroomCollection)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	cur, err := coll.Find(ctx, bson.M{"roomName": name})
